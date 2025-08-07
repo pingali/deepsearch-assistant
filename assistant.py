@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 
 import os
 import json
@@ -75,23 +75,25 @@ def run_grok_prompt(yaml_file, promptdir, var, output, output_path):
         "messages": [
             {"role": "user", "content": rendered_prompt}
         ],
-        "stream": False
+        "stream": False,
+        "temperature": 0.1,  # Lower temperature for more consistent output
+        "response_format": {"type": "json_object"}
     }
 
     try:
         response = requests.post(url, headers=headers, json=data)
         response.raise_for_status()
-        
+
         # Debug: print response status and content
         click.echo(f"API Response Status: {response.status_code}", err=True)
         response_json = response.json()
-        
+
         # Extract the completion content
         if "choices" in response_json and len(response_json["choices"]) > 0:
             api_output = response_json["choices"][0]["message"]["content"]
         else:
             raise click.ClickException(f"Unexpected API response format: {response_json}")
-            
+
     except requests.exceptions.RequestException as e:
         raise click.ClickException(f"API request failed: {e}")
     except KeyError as e:
@@ -99,15 +101,8 @@ def run_grok_prompt(yaml_file, promptdir, var, output, output_path):
     except Exception as e:
         raise click.ClickException(f"Error processing API response: {e}")
 
-    try:
-        api_output = json.loads(cleaned_output)
-    except:
-        cleaned_output = api_output\
-            .replace('\u2019', "'")\
-            .replace('\u201c', '"')\
-            .replace('\u201d', '"')
-        api_output = json.loads(cleaned_output)
-    
+    api_output = json.loads(api_output)
+
     result = {"prompt": rendered_prompt, "output": api_output}
 
     # Handle output destination
@@ -122,10 +117,10 @@ def run_grok_prompt(yaml_file, promptdir, var, output, output_path):
             prompt_output_dir = OUTPUT_DIR / prompt_name
             prompt_output_dir.mkdir(parents=True, exist_ok=True)
             output_file = prompt_output_dir / f"{timestamp}.json"
-        
+
         # Ensure output directory exists
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        
+
         with open(output_file, 'w') as f:
             json.dump(result, f, indent=4)
 
