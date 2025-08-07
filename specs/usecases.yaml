@@ -1,0 +1,4 @@
+prompt: usecases
+variables:
+  days: 14
+  num: 20
